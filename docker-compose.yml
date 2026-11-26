@@ -164,8 +164,6 @@ services:
       - ./:/workspace:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    groups:
-      - "0"
     networks: [lab]
     profiles: ["jenkins"]
 
