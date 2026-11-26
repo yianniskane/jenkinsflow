@@ -1,7 +1,8 @@
 # CI/CD Learning Lab — Plan for Review
 
 **Status:** awaiting your approval before any implementation  
-**Goal:** learn the real path of *build → test → ship → observe* with Docker, not build a production platform yet.
+**Goal:** learn the real path of *build → test → ship → observe* with Docker, not build a production platform yet.  
+**Runtime assumption:** you already have Docker running on your PC — Phase 1 is designed to run primarily via `docker compose` locally (app, SQL Server, observability, Jenkins). The cloud agent can scaffold and verify the files; you will start the stack on your machine.
 
 ---
 
@@ -155,7 +156,7 @@ That loop is the whole point of Phase 1.
 4. **GitHub Actions = CI**, **Jenkins = CD/deploy** (clear split).
 5. **No Kubernetes yet** — Compose is enough; K8s is a separate learning arc.
 6. **No real cloud deploy in Phase 1** — local Docker registry + Compose keeps cost/complexity down.
-7. **SQL Server Developer/Express image** in Compose; accept that it is heavier than Postgres (that’s intentional).
+7. **SQL Server Developer/Express image** in Compose; accept that it is heavier than Postgres (that’s intentional). Give Docker Desktop enough RAM (about **4 GB+ free** for MSSQL alone is a common baseline; the full lab will want more).
 
 ---
 
