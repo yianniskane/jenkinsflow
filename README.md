@@ -110,19 +110,23 @@ Packages are private/public based on your GHCR settings. You may need to accept 
 
 ## Jenkins (CD, optional)
 
-Start Jenkins (uses Docker socket on your machine):
+Start Jenkins (Docker CLI + Pipeline plugins preinstalled; uses your Docker socket):
 
 ```bash
-docker compose --profile jenkins up -d jenkins
+docker compose --profile jenkins up -d --build jenkins
 ```
 
 Open http://localhost:38080
 
-Create a **Pipeline** job pointing at this repo’s `jenkins/Jenkinsfile` (Pipeline script from SCM), or paste the Jenkinsfile contents for a first local experiment.
+**Full click-by-click guide** (what each stage means, SCM vs paste, parameters, failures):
 
-The pipeline: test → build image → `docker compose up -d --no-deps catalog-api` → smoke check.
+→ **[docs/JENKINS_PIPELINE.md](docs/JENKINS_PIPELINE.md)**
 
-> First Jenkins boot can take a while. For learning, prefer GitHub Actions for CI and use Jenkins when you want to practise self-hosted CD.
+Short version: create a **Pipeline** job → **Pipeline script from SCM** → Git repo `https://github.com/yianniskane/jenkinsflow.git` → Script path `jenkins/Jenkinsfile` → **Build Now**.
+
+Flow: **Checkout → Test → Build image → `docker compose up -d --no-deps catalog-api` → Smoke check**.
+
+> First Jenkins boot can take a while. Prefer GitHub Actions for CI; use Jenkins when you want to practise self-hosted CD.
 
 ---
 

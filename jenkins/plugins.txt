@@ -1,0 +1,8 @@
+workflow-aggregator
+git
+credentials
+credentials-binding
+docker-workflow
+plain-credentials
+joda-time-api
+apache-httpcomponents-client-4-api

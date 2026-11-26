@@ -736,6 +736,7 @@ curl http://localhost:39090/-/healthy
 | `apps/catalog-api/Dockerfile` | API image build |
 | `observability/` | Prometheus / Grafana / Loki / Promtail configs |
 | `jenkins/Jenkinsfile` | Optional CD pipeline |
+| `docs/JENKINS_PIPELINE.md` | Jenkins job setup & stage-by-stage guide |
 
 When an error is new, capture:
 
