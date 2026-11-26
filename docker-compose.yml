@@ -8,7 +8,7 @@ services:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-Your_strong_Password123}
     ports:
-      - "14333:1433"
+      - "41433:1433"
     volumes:
       - sqlserver-data:/var/opt/mssql
     healthcheck:

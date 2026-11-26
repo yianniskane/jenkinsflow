@@ -65,7 +65,7 @@ curl -X POST http://localhost:3845/api/books \
 | Grafana (admin/admin) | http://localhost:3300 |
 | Prometheus UI | http://localhost:39090 |
 | Loki | http://localhost:33100 |
-| SQL Server | `localhost:14333` (sa / see `.env`) |
+| SQL Server | `localhost:41433` (sa / see `.env`) |
 | Valkey | `localhost:16379` |
 
 See Valkey in action: open Grafana → Explore → Loki, query `{compose_service="catalog-api"} |= "CACHE"`.
@@ -90,7 +90,7 @@ docker compose down -v
 docker compose up -d sqlserver sqlserver-init valkey
 ```
 
-4. Run `CatalogApiApplication` with the defaults in `application.yml` (ports `14333` / `16379`).
+4. Run `CatalogApiApplication` with the defaults in `application.yml` (ports `41433` / `16379`).
 
 ---
 
