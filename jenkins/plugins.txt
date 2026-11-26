@@ -4,5 +4,6 @@ credentials
 credentials-binding
 docker-workflow
 plain-credentials
+configuration-as-code
 joda-time-api
 apache-httpcomponents-client-4-api

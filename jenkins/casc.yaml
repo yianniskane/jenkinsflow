@@ -1,0 +1,10 @@
+# Jenkins Configuration as Code — local learning lab defaults
+jenkins:
+  systemMessage: "jenkinsflow local CD lab — not for production."
+  numExecutors: 2
+  remotingSecurity:
+    enabled: true
+
+unclassified:
+  location:
+    url: http://localhost:38080/

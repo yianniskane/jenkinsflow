@@ -77,6 +77,29 @@ curl http://host.docker.internal:3845/api/health-demo
 
 ---
 
+## Manage Jenkins warnings (what you see on first open)
+
+These banners are normal for a fresh local controller. For this **learning lab on your PC**, treat them as follows:
+
+| Banner | Meaning | What to do in this lab |
+|--------|---------|------------------------|
+| **Building on the built-in node** | Builds run on the Jenkins controller itself, not a separate agent | **OK to ignore.** Agents/clouds are for teams/production. Your Jenkinsfile uses `agent any` on the built-in node on purpose. |
+| **Jenkins URL is empty** | Features like `BUILD_URL` need a public/base URL | **Fixed via** `jenkins/casc.yaml` → `http://localhost:38080/`. Rebuild Jenkins if the banner remains on an old volume. Or set it under *Manage Jenkins → System → Jenkins URL*. |
+| **Jenkins is currently unsecured** | No login; anyone who can reach `:38080` can run jobs | **Acceptable on localhost only.** Do not publish port 38080 to the internet. Later you can click *Setup Security* and create a local admin. |
+| **Java 21 end of life… 2027** | Heads-up about future Jenkins Java support | **Ignore for now.** Java 21 is correct for this image today. |
+| **Content Security Policy (CSP)** | Browser XSS hardening for Jenkins UI | **Optional.** Enable later if you harden the controller; not required to learn pipelines. |
+
+After `git pull` and rebuilding Jenkins, refresh *Manage Jenkins* — the URL warning should disappear once Configuration as Code applies.
+
+```powershell
+git pull
+docker compose --profile jenkins up -d --build jenkins
+```
+
+If Casc does not apply (old volume state), set the URL once in the UI: **Manage Jenkins → System → Jenkins URL** = `http://localhost:38080/`.
+
+---
+
 ## Prerequisites
 
 1. Lab stack already running (at least SQL Server + Valkey; full `docker compose up -d` is fine).
