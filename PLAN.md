@@ -1,8 +1,16 @@
 # CI/CD Learning Lab — Plan for Review
 
-**Status:** awaiting your approval before any implementation  
+**Status:** decisions partially locked — awaiting “proceed” (and GitHub repo link if you want GH instead of this project’s git)  
 **Goal:** learn the real path of *build → test → ship → observe* with Docker, not build a production platform yet.  
-**Runtime assumption:** you already have Docker running on your PC — Phase 1 is designed to run primarily via `docker compose` locally (app, SQL Server, observability, Jenkins). The cloud agent can scaffold and verify the files; you will start the stack on your machine.
+**Runtime assumption:** you already have Docker running on your PC — Phase 1 is designed to run primarily via `docker compose` locally (app, SQL Server, Valkey, observability, Jenkins). The cloud agent scaffolds and pushes; you start the stack on your machine.
+
+### Locked decisions (from you)
+
+| Decision | Choice |
+|----------|--------|
+| Build tool | **Maven** |
+| Valkey | **Include in Phase 1** — small, visible usage only (e.g. cache `GET /api/books` so you can see hit/miss in logs/metrics) |
+| Traefik / Keycloak | Still **Phase 2** |
 
 ---
 
@@ -91,14 +99,22 @@ Minimum useful observability set:
 | Piece | Role |
 |-------|------|
 | **Prometheus** | scrape Spring Actuator metrics |
-| **Grafana** | dashboards (JVM, HTTP, DB pool) |
+| **Grafana** | dashboards (JVM, HTTP, DB pool, cache) |
 | **Loki** | log store |
 | **Promtail** | ship container logs → Loki |
 | **Spring Actuator + Micrometer** | app-side metrics/health |
+| **Valkey** | Redis-compatible cache — cache the book list so you can *see* cache working |
 
-**Why this set:** Loki alone shows logs; without Prometheus you miss “is latency climbing?” — the pair is the standard teaching stack and maps cleanly to what you’ll see at work.
+**Why this set:** Loki alone shows logs; without Prometheus you miss “is latency climbing?” — the pair is the standard teaching stack. Valkey is in Phase 1 only as a thin demo (not a full caching strategy).
 
 Optional stretch (only if Phase 1 still feels light): Alertmanager with one toy alert (e.g. 5xx rate). Easy to skip.
+
+### Valkey in Phase 1 (how you’ll “see it work”)
+
+- Compose service: `valkey/valkey:latest` (or a pinned tag).
+- App uses Spring Data Redis / cache abstraction against Valkey.
+- `GET /api/books` served from cache after the first DB hit; logs or a tiny `/api/cache/stats` (or Actuator metrics) show hits vs misses.
+- Enough to learn the client + Compose wiring; not a production cache design.
 
 ---
 
@@ -108,9 +124,8 @@ Optional stretch (only if Phase 1 still feels light): Alertmanager with one toy 
 |-----------|-----------|
 | **Traefik** | reverse proxy / TLS / routing — needs a stable app first |
 | **Keycloak** | auth/OIDC — changes every endpoint and testing story |
-| **Valkey** | cache/session — add when you have a read-heavy path worth caching |
 
-Phase 2 sketch (not built now): Traefik in front of the API, Keycloak for JWT/OIDC, Valkey for a simple cache (e.g. book list). Same Compose lab, extended — not a rewrite.
+Phase 2 sketch (not built now): Traefik in front of the API, Keycloak for JWT/OIDC. Valkey already present from Phase 1. Same Compose lab, extended — not a rewrite.
 
 ---
 
@@ -120,9 +135,9 @@ Phase 2 sketch (not built now): Traefik in front of the API, Keycloak for JWT/OI
 .
 ├── PLAN.md                 ← this file
 ├── README.md               ← how to run the lab
-├── docker-compose.yml      ← app + db + observability (+ jenkins profile)
+├── docker-compose.yml      ← app + db + valkey + observability (+ jenkins profile)
 ├── apps/
-│   └── catalog-api/        ← Spring Boot 4 project
+│   └── catalog-api/        ← Spring Boot 4 / Maven project
 ├── db/
 │   └── init/               ← optional seed scripts (Flyway lives in app)
 ├── jenkins/
@@ -170,28 +185,37 @@ That loop is the whole point of Phase 1.
 
 ---
 
-## Open questions for you
+## Git: can I upload the app to your Git?
 
-Reply with preferences (defaults in **bold** if you say “go ahead”):
+**Yes — with one caveat about *which* Git.**
 
-1. **OK to proceed with this Phase 1 scope?**
-2. Build tool: **Maven** or Gradle?
-3. Image registry: **local Docker registry in Compose**, or GitHub Container Registry (GHCR)?
-4. Jenkins: full CD deploy job from day one, or start with a “mirror CI” job then add deploy?
-5. Any must-have endpoints/tables different from `authors` / `books`?
-6. When Phase 1 is done, should Phase 2 start with **Traefik → Keycloak → Valkey** in that order?
+| Destination | Can I push there? |
+|-------------|-------------------|
+| **This Cursor project’s git remote** | **Yes, already.** Every commit (including this plan) is pushed to the project remote automatically when I commit. |
+| **Your GitHub (`yianniskane`)** | **Yes, after the project is linked to a GitHub repo.** Your GitHub account is connected in Cursor. This New Project session still uses Cursor’s project git until you attach a real GitHub repository (use the **Create repo** control in the agent/chat UI, or create a repo on GitHub and tell me the URL). I cannot invent a new GitHub repo from here without that link. |
+
+So: I can keep shipping code to git as we build. If you want it under **github.com/yianniskane/...**, create/link that repo and say the name (or paste the URL) — then we treat that as source of truth for Actions too.
 
 ---
 
-## Next step after your review
+## Remaining open questions
 
-Once you approve (with any edits), implementation order will be:
+1. **Say “proceed”** when Phase 1 scope above is OK to build.
+2. Image registry: **local Docker registry in Compose**, or GitHub Container Registry (GHCR)?
+3. Jenkins: full CD deploy job from day one, or start with a “mirror CI” job then add deploy?
+4. Domain still `authors` / `books`, or something else?
+5. Phase 2 order: **Traefik → Keycloak** (Valkey already in Phase 1)?
 
-1. Spring Boot app + Flyway + SQL Server in Compose  
-2. Actuator/Prometheus metrics wired  
-3. Grafana + Loki + Promtail  
-4. GitHub Actions CI  
-5. Jenkins + Jenkinsfile deploy path  
-6. README walkthrough of the full loop  
+---
 
-No code beyond this plan until you say proceed.
+## Next step after you say proceed
+
+1. Spring Boot 4 + Maven app + Flyway + SQL Server in Compose  
+2. Valkey + simple book-list cache demo  
+3. Actuator/Prometheus metrics  
+4. Grafana + Loki + Promtail  
+5. GitHub Actions CI  
+6. Jenkins + Jenkinsfile deploy path  
+7. README walkthrough of the full loop  
+
+No application code until you say **proceed** (optionally after linking GitHub).
