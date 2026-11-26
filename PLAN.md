@@ -1,8 +1,9 @@
 # CI/CD Learning Lab — Plan for Review
 
-**Status:** decisions partially locked — awaiting “proceed” (and GitHub repo link if you want GH instead of this project’s git)  
+**Status:** decisions partially locked — awaiting “proceed” to build the app  
 **Goal:** learn the real path of *build → test → ship → observe* with Docker, not build a production platform yet.  
-**Runtime assumption:** you already have Docker running on your PC — Phase 1 is designed to run primarily via `docker compose` locally (app, SQL Server, Valkey, observability, Jenkins). The cloud agent scaffolds and pushes; you start the stack on your machine.
+**Runtime assumption:** you already have Docker running on your PC — Phase 1 is designed to run primarily via `docker compose` locally (app, SQL Server, Valkey, observability, Jenkins). The cloud agent scaffolds and pushes; you start the stack on your machine.  
+**GitHub repo:** [https://github.com/yianniskane/jenkinsflow](https://github.com/yianniskane/jenkinsflow) — plan commits are pushed here; GitHub Actions will live in this repo.
 
 ### Locked decisions (from you)
 
@@ -10,6 +11,7 @@
 |----------|--------|
 | Build tool | **Maven** |
 | Valkey | **Include in Phase 1** — small, visible usage only (e.g. cache `GET /api/books` so you can see hit/miss in logs/metrics) |
+| Git remote | **https://github.com/yianniskane/jenkinsflow.git** |
 | Traefik / Keycloak | Still **Phase 2** |
 
 ---
@@ -185,23 +187,18 @@ That loop is the whole point of Phase 1.
 
 ---
 
-## Git: can I upload the app to your Git?
+## Git
 
-**Yes — with one caveat about *which* Git.**
+Source of truth for this lab: **https://github.com/yianniskane/jenkinsflow**
 
-| Destination | Can I push there? |
-|-------------|-------------------|
-| **This Cursor project’s git remote** | **Yes, already.** Every commit (including this plan) is pushed to the project remote automatically when I commit. |
-| **Your GitHub (`yianniskane`)** | **Yes, after the project is linked to a GitHub repo.** Your GitHub account is connected in Cursor. This New Project session still uses Cursor’s project git until you attach a real GitHub repository (use the **Create repo** control in the agent/chat UI, or create a repo on GitHub and tell me the URL). I cannot invent a new GitHub repo from here without that link. |
-
-So: I can keep shipping code to git as we build. If you want it under **github.com/yianniskane/...**, create/link that repo and say the name (or paste the URL) — then we treat that as source of truth for Actions too.
+Commits are pushed to that GitHub repo (and may also sync to the Cursor project remote). GitHub Actions workflows in `.github/workflows/` will run against this repository.
 
 ---
 
 ## Remaining open questions
 
 1. **Say “proceed”** when Phase 1 scope above is OK to build.
-2. Image registry: **local Docker registry in Compose**, or GitHub Container Registry (GHCR)?
+2. Image registry: **GHCR** (fits this GitHub repo) or local Docker registry in Compose?
 3. Jenkins: full CD deploy job from day one, or start with a “mirror CI” job then add deploy?
 4. Domain still `authors` / `books`, or something else?
 5. Phase 2 order: **Traefik → Keycloak** (Valkey already in Phase 1)?
