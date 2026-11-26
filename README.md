@@ -155,6 +155,12 @@ PLAN.md               Design notes / Phase 2
 
 ---
 
+## Troubleshooting
+
+Detailed Docker / Compose error playbooks and commands:
+
+→ **[docs/DOCKER_TROUBLESHOOTING.md](docs/DOCKER_TROUBLESHOOTING.md)**
+
 ## Phase 2 (later)
 
 Traefik → Keycloak (Valkey already present). See `PLAN.md`.
