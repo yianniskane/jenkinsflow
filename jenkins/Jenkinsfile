@@ -1,0 +1,74 @@
+pipeline {
+  agent any
+
+  parameters {
+    string(name: 'IMAGE_TAG', defaultValue: 'local', description: 'Tag to deploy for catalog-api')
+    booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Skip Maven tests (not recommended)')
+  }
+
+  environment {
+    COMPOSE_PROJECT_NAME = 'jenkinsflow'
+    IMAGE_NAME = 'ghcr.io/yianniskane/jenkinsflow-catalog-api'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Test') {
+      when {
+        expression { return !params.SKIP_TESTS }
+      }
+      steps {
+        dir('apps/catalog-api') {
+          sh 'docker run --rm -v "$PWD":/ws -w /ws maven:3.9.11-eclipse-temurin-21 mvn -B test'
+        }
+      }
+    }
+
+    stage('Build image') {
+      steps {
+        sh '''
+          docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:jenkins-${BUILD_NUMBER} \
+            apps/catalog-api
+        '''
+      }
+    }
+
+    stage('Deploy (compose)') {
+      steps {
+        sh '''
+          export IMAGE_NAME=${IMAGE_NAME}
+          export IMAGE_TAG=${IMAGE_TAG}
+          docker compose up -d --no-deps catalog-api
+          docker compose ps
+        '''
+      }
+    }
+
+    stage('Smoke check') {
+      steps {
+        sh '''
+          for i in $(seq 1 30); do
+            if curl -fsS http://host.docker.internal:3845/actuator/health | grep -q UP; then
+              curl -fsS http://host.docker.internal:3845/api/health-demo
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "catalog-api did not become healthy" >&2
+          exit 1
+        '''
+      }
+    }
+  }
+
+  post {
+    always {
+      echo "CD finished for ${IMAGE_NAME}:${IMAGE_TAG}"
+    }
+  }
+}

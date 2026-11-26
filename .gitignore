@@ -1,0 +1,13 @@
+.env
+.idea/
+*.iml
+.vscode/
+.DS_Store
+**/target/
+**/out/
+**/.classpath
+**/.project
+**/.settings/
+*.log
+.cursor/
+jenkins/casc_secrets/

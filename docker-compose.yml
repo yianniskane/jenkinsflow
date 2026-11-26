@@ -1,0 +1,182 @@
+name: jenkinsflow
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: jf-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-Your_strong_Password123}
+    ports:
+      - "14333:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\" || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks: [lab]
+
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: jf-sqlserver-init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-Your_strong_Password123}
+    volumes:
+      - ./db/init:/init:ro
+    entrypoint: ["/bin/bash", "/init/wait-and-create.sh"]
+    networks: [lab]
+    restart: "no"
+
+  valkey:
+    image: valkey/valkey:8
+    container_name: jf-valkey
+    ports:
+      - "16379:6379"
+    command: ["valkey-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [lab]
+
+  catalog-api:
+    build:
+      context: ./apps/catalog-api
+      dockerfile: Dockerfile
+    image: ${IMAGE_NAME:-ghcr.io/yianniskane/jenkinsflow-catalog-api}:${IMAGE_TAG:-local}
+    container_name: jf-catalog-api
+    depends_on:
+      sqlserver-init:
+        condition: service_completed_successfully
+      valkey:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:sqlserver://sqlserver:1433;databaseName=catalog;encrypt=true;trustServerCertificate=true
+      SPRING_DATASOURCE_USERNAME: sa
+      SPRING_DATASOURCE_PASSWORD: ${MSSQL_SA_PASSWORD:-Your_strong_Password123}
+      SPRING_DATA_REDIS_HOST: valkey
+      SPRING_DATA_REDIS_PORT: 6379
+    ports:
+      - "3845:3845"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:3845/actuator/health | grep -q UP || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    networks: [lab]
+
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    container_name: jf-prometheus
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    ports:
+      - "39090:9090"
+    depends_on:
+      catalog-api:
+        condition: service_started
+    networks: [lab]
+
+  loki:
+    image: grafana/loki:3.4.2
+    container_name: jf-loki
+    volumes:
+      - ./observability/loki/loki-config.yml:/etc/loki/config.yml:ro
+      - loki-data:/loki
+    command: ["-config.file=/etc/loki/config.yml"]
+    ports:
+      - "33100:3100"
+    networks: [lab]
+
+  promtail:
+    image: grafana/promtail:3.4.2
+    container_name: jf-promtail
+    volumes:
+      - ./observability/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: ["-config.file=/etc/promtail/config.yml"]
+    depends_on:
+      - loki
+    networks: [lab]
+
+  grafana:
+    image: grafana/grafana:11.5.2
+    container_name: jf-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_DEFAULT_THEME: light
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3300:3000"
+    depends_on:
+      - prometheus
+      - loki
+    networks: [lab]
+
+  registry:
+    image: registry:2
+    container_name: jf-registry
+    ports:
+      - "35000:5000"
+    volumes:
+      - registry-data:/var/lib/registry
+    networks: [lab]
+    profiles: ["ci-local"]
+
+  jenkins:
+    image: jenkins/jenkins:lts-jdk21
+    container_name: jf-jenkins
+    user: root
+    environment:
+      JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
+    ports:
+      - "38080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/workspace:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    groups:
+      - "0"
+    networks: [lab]
+    profiles: ["jenkins"]
+
+networks:
+  lab:
+    driver: bridge
+
+volumes:
+  sqlserver-data:
+  prometheus-data:
+  loki-data:
+  grafana-data:
+  registry-data:
+  jenkins-data:

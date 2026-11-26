@@ -1,0 +1,5 @@
+IF DB_ID(N'catalog') IS NULL
+BEGIN
+    CREATE DATABASE catalog;
+END
+GO
