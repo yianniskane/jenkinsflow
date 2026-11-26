@@ -30,10 +30,26 @@ services:
       sqlserver:
         condition: service_healthy
     environment:
+      ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-Your_strong_Password123}
-    volumes:
-      - ./db/init:/init:ro
-    entrypoint: ["/bin/bash", "/init/wait-and-create.sh"]
+    # Inline (not a mounted .sh) so Windows CRLF checkouts cannot break init.
+    entrypoint:
+      - /bin/bash
+      - -lc
+      - |
+        set -euo pipefail
+        if [ -x /opt/mssql-tools18/bin/sqlcmd ]; then
+          SQLCMD=/opt/mssql-tools18/bin/sqlcmd
+        elif [ -x /opt/mssql-tools/bin/sqlcmd ]; then
+          SQLCMD=/opt/mssql-tools/bin/sqlcmd
+        else
+          echo "sqlcmd not found in image" >&2
+          find /opt -name sqlcmd 2>/dev/null || true
+          exit 2
+        fi
+        echo "Creating catalog database if needed..."
+        "$$SQLCMD" -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "IF DB_ID(N'catalog') IS NULL CREATE DATABASE catalog;"
+        echo "catalog database ensured"
     networks: [lab]
     restart: "no"
 
